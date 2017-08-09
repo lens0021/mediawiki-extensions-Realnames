@@ -219,15 +219,15 @@ class ExtRealnames {
     $lang = $wgContLang;
 
     // user namespace's primary name in the wiki lang
-    $namespaces[] = $lang->getNsText ( NS_USER );
-    $namespaces[] = $lang->getNsText ( NS_USER_TALK );
+    $namespaces[] = urlencode($lang->getNsText ( NS_USER )) . ':';
+    $namespaces[] = urlencode($lang->getNsText ( NS_USER_TALK )) . ':';
 
     // namespace aliases and gendered namespaces (1.18+) in the wiki's lang
     // fallback for pre 1.16
     $nss = method_exists($lang, 'getNamespaceAliases') ? $lang->getNamespaceAliases() : $wgNamespaceAliases;
     foreach ($nss as $name=>$space) {
       if (in_array($space, array(NS_USER,NS_USER_TALK))) {
-        $namespaces[] = $name;
+        $namespaces[] = urlencode($name) . ':';
       }
     }
 
@@ -265,7 +265,10 @@ class ExtRealnames {
       if (in_array($title->getNamespace(), array(NS_USER, NS_USER_TALK))) { // User:
         // swap out the specific username from title
         // this overcomes the problem lookForBare has with spaces and underscores in names
-        $out->setPagetitle(static::lookForBare($out->getPageTitle(),'/'.static::getNamespacePrefixes().'\s*('.$title->getText().')(?:\/.+)?/'));
+        while($title->isSubpage()) {
+          $title = $title->getBaseTitle();
+        }
+        $out->setPagetitle(static::lookForBare($out->getPageTitle(),'/'.static::getNamespacePrefixes().'?\s*('.preg_quote ( $title->getText() , '/' ).')/'));
       }
 
       // this should also affect the html head title
@@ -350,13 +353,16 @@ class ExtRealnames {
    */
   protected static function lookForLinks($text,$pattern=false) {
     if (empty($pattern)) {
-      $pattern = '/(<a\b[^">]+href="[^">]+'.static::getNamespacePrefixes().'([^"\\?\\&>]+)[^>]+>)'.static::getNamespacePrefixes().'?([^>]+)(<\\/a>)/';
+      $pattern = '/(<a\b[^">]+href="[^">]+'.static::getNamespacePrefixes().'([^"\\?&>]+)[^>]+>)'.static::getNamespacePrefixes().'?(?:\s*\<bdi\>)?([^><]+)(?:\<\/bdi\>)?(<\/a>)/';
     }
-    return preg_replace_callback(
+    $newText = preg_replace_callback(
       $pattern,
       array( __CLASS__, 'checkLink' ), // create_function is slow
       $text
       );
+    if($newText == null)
+      return $text;
+    return $newText;
   } // function
 
   /**
