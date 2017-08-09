@@ -108,6 +108,7 @@ $wgRealnamesStyles = array(
     'replace' => '$1$3$4',
     'reverse' => '$1$3$4 [$2]',
     'dash' => '$1$2$4 &ndash; $3',
+    'femiwiki' => '$3 [$1$2$4]',
   ); 
   
 /**
